@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rolling-upd
+  labels:
+    app: rolling-upd
+spec:
+  ports:
+  - port: 5001
+    name: web
+  #clusterIP: None
+  selector:
+    app: rolling-upd
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rolling-upd
+spec:
+  selector:
+    matchLabels:
+      app: rolling-upd # has to match .spec.template.metadata.labels
+  serviceName: "rolling-upd"
+  replicas: 3 # by default is 1
+  template:
+    metadata:
+      labels:
+        app: rolling-upd # has to match .spec.selector.matchLabels
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: rolling-upd-img
+        image: serviceone:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5001
+          name: web
+        volumeMounts:
+        - name: log
+          mountPath: /log
+  volumeClaimTemplates:
+  - metadata:
+      name: log
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "hostpath"
+      resources:
+        requests:
+          storage: 10Mi
